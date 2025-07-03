@@ -1,48 +1,22 @@
-// Jenkinsfile for the 'dynamic-git-pipeline' job
+// This Jenkinsfile is loaded by a parent "wrapper" pipeline.
+// It contains the specific build, test, and deploy logic for this project.
 
 pipeline {
-    // กำหนดให้ Pipeline ทำงานบน Agent ใดก็ได้ที่มี Docker ติดตั้งอยู่
+    // Run on any available agent
     agent any
 
-    // กำหนดพารามิเตอร์ที่ Pipeline จะรับค่าเข้ามา
-    parameters {
-        string(name: 'GIT_REPO_URL', defaultValue: '', description: 'Git repository URL to build')
-    }
-
-    // กำหนด Environment Variables ที่จะใช้ภายใน Pipeline
+    // Environment variables for this pipeline
     environment {
-        // ดึงชื่อ Repository จาก URL เพื่อใช้เป็นชื่อ Docker Image
-        // ตัวอย่าง: https://github.com/user/my-app.git -> my-app
+        // The GIT_REPO_URL is passed from the Jenkins Job parameter.
+        // We derive the image name from it.
         IMAGE_NAME = "${params.GIT_REPO_URL.split('/').last().split('\\.git').first()}"
         
-        // สร้าง Version ของ Image โดยใช้ Build Number เพื่อให้ไม่ซ้ำกัน
+        // Create a unique version tag using the build number
         IMAGE_VERSION = "v1.0.${BUILD_NUMBER}"
     }
 
     stages {
-        stage('1. Checkout Target Repository') {
-            steps {
-                script {
-                    if (params.GIT_REPO_URL.trim().isEmpty()) {
-                        error "Git repository URL was not provided."
-                    }
-                    echo "Checking out code from: ${params.GIT_REPO_URL}"
-
-                    // Clean workspace before checkout for a fresh start
-                    cleanWs()
-
-                    // Checkout the repository that contains the actual build logic
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']], // Use '*/master' if that is your default branch
-                        userRemoteConfigs: [[url: params.GIT_REPO_URL]]
-                    ])
-                }
-            }
-        }
-
-
-        stage('2. Build and Push Docker Image') {
+        stage('Build and Push Docker Image') {
             steps {
                 script {
                     echo "Building Docker image: ${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
@@ -81,12 +55,9 @@ pipeline {
         // }
     }
 
-    // ส่วนที่จะทำงานเสมอ ไม่ว่า Pipeline จะสำเร็จหรือล้มเหลว
     post {
         always {
             echo 'Pipeline finished.'
-            // ล้าง Workspace เพื่อไม่ให้เปลืองพื้นที่
-            cleanWs()
         }
     }
 }
