@@ -2,18 +2,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: TestWeb
-  name: TestWeb
+    app: testweb
+  name: testweb
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: TestWeb
+      app: testweb
   template:
     metadata:
       labels:
-        app: TestWeb
+        app: testweb
     spec:
       containers:
       - image: ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}
-        name: TestWeb
+        name: testweb
