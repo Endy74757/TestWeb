@@ -52,7 +52,7 @@ pipeline {
 
         stage('Deploy To Kubernetes') {
             steps {
-                echo "Deploying image ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}..."
+                
                 withKubeConfig(credentialsId: "kubeconfig") {
                     // DOCKER_USER is only needed for the echo statement, but it's good practice
                     // to wrap steps needing credentials.
@@ -60,6 +60,7 @@ pipeline {
                         // The environment block at the top level makes IMAGE_NAME and IMAGE_VERSION available to the shell.
                         // DOCKER_USER is made available by withCredentials.
                         sh '''
+                            echo "Deploying image ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}..."
                             echo "Applying deployment for image ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
                             
                             # Use envsubst to substitute variables from the shell environment into the YAML
