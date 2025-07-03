@@ -1,15 +1,6 @@
 # Stage 1: Use an official Node.js runtime as a parent image
 # Using alpine version for a smaller image size, which is great for production.
-FROM node:18-alpine
-
-# Declare build-time arguments for proxy settings.
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
-
-# Update OS packages to get the latest security patches
-# and then clean up the apk cache to keep the image size down.
-RUN apk update && apk upgrade && \
-    rm -rf /var/cache/apk/*
+FROM node:20-alpine
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
@@ -19,26 +10,16 @@ WORKDIR /usr/src/app
 # Docker won't re-run 'npm install' on subsequent builds, speeding things up.
 COPY package*.json ./
 
-# Install dependencies, using the proxy for this step only.
-# This is cleaner than setting ENV variables for the whole image.
-RUN if [ -n "$HTTP_PROXY" ]; then npm config set proxy $HTTP_PROXY; fi && \
-    if [ -n "$HTTPS_PROXY" ]; then npm config set https-proxy $HTTPS_PROXY; fi && \
-    npm install --production --verbose && \
-    npm config delete proxy && \
-    npm config delete https-proxy
+ENV https_proxy=http://192.168.1.6:3128
+ENV http_proxy=http://192.168.1.6:3128
+ARG HTTPS_PROXY=http://192.168.1.6:3128
+ARG HTTP_PROXY=http://192.168.1.6:3128
+
+# Install only production dependencies to keep the image lean.
+RUN npm install --production
 
 # Copy the rest of the application's source code into the container.
 COPY . .
-
-# --- Security Best Practice: Run as a non-root user ---
-# Create a dedicated user and group for the application
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-# Change the ownership of the application files to the new user
-RUN chown -R appuser:appgroup /usr/src/app
-
-# Switch to the non-root user
-USER appuser
 
 # Expose the port your application runs on. Adjust this if your app uses a different port.
 EXPOSE 8080
