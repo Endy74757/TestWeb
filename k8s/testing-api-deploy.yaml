@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: TestWeb
+  name: TestWeb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: TestWeb
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: TestWeb
+    spec:
+      containers:
+      - image: ${DOCKER_USER}/${imageName}:${imageVersion}
+        name: testingapi
+        resources: {}
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
