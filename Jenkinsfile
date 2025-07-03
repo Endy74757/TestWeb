@@ -34,18 +34,18 @@ pipeline {
                     
                     // SECURITY: Removed 'sudo'. The 'jenkins' user on the agent should be in the 'docker' group.
                     // Run this on the agent once: sudo usermod -aG docker jenkins
-                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+                    sh "echo ${DOCKER_PASS} | sudo docker login -u ${DOCKER_USER} --password-stdin"
 
                     sh """
-                        docker build \\
+                        sudo docker build \\
                             --build-arg http_proxy=http://192.168.1.6:3128 \\
                             --build-arg https_proxy=http://192.168.1.6:3128 \\
                             -t ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} \\
                             -f Dockerfile .
                     """
 
-                    sh "docker push ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
-                    sh "docker logout"
+                    sh "sudo docker push ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                    sh "sudo docker logout"
                 }
             }
         }
