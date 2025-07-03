@@ -13,15 +13,23 @@ COPY package*.json ./
 ARG http_proxy
 ARG https_proxy
 
+# Set environment variables for any tools within the RUN command that might need them.
 ENV http_proxy=${http_proxy}
 ENV https_proxy=${https_proxy}
 
-
 # Install only production dependencies to keep the image lean.
-RUN npm install --production
+# Using --omit=dev is the modern equivalent of --production.
+# We pass the proxy directly to the npm command for maximum reliability
+# and clean the cache to prevent issues from previous failed attempts.
+RUN npm cache clean --force && \
+    npm install --omit=dev --proxy=${http_proxy} --https-proxy=${https_proxy}
 
 # Copy the rest of the application's source code into the container.
 COPY . .
+
+# Unset proxy environment variables so they don't leak into the final image.
+ENV http_proxy=""
+ENV https_proxy=""
 
 # Expose the port your application runs on. Adjust this if your app uses a different port.
 EXPOSE 8080
