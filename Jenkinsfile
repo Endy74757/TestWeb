@@ -23,24 +23,30 @@ stage('Build and Push Docker Image') {
     }
 }
 
-stage('Deploy To Kubernetes'){
+stage('Deploy To Kubernetes') {
+    // กำหนด Environment Variables สำหรับ Stage นี้โดยเฉพาะ
+    // เพื่อให้ shell script (envsubst) สามารถมองเห็นค่าจาก Groovy ได้
+    environment {
+        IMAGE_NAME    = imageName
+        IMAGE_VERSION = imageVersion
+    }
     steps {
         // 1. ดึง Kubeconfig credential
         withKubeConfig(credentialsId: "kubeconfig") {
             // 2. ดึง Docker Hub credential เพื่อให้ DOCKER_USER พร้อมใช้งาน
             withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                script{
-                    sh('''
+                // ไม่จำเป็นต้องใช้ script {} เพราะมีแค่ sh step เดียว
+                sh '''
                     echo =======Deploy To Kubernetes==========
-                    echo "Applying deployment for image ${DOCKER_USER}/${imageName}:${imageVersion}"
+                    # ตัวแปรเหล่านี้ถูกส่งมาจาก environment block ด้านบน
+                    echo "Applying deployment for image ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
 
-                    # 3. แก้ไข kubectl ให้รับค่าจาก pipe โดยใช้ "-f -"
+                    # 3. envsubst จะแทนที่ตัวแปรในไฟล์ YAML ด้วยค่าจาก environment
                     cat k8s/testing-api-deploy.yaml | envsubst | kubectl apply -f -
                     kubectl apply -f k8s/testing-api-svc.yaml
                     sleep 10
-                    echo "Successfully deployed version: ${imageVersion}"
-                    ''')
-                }
+                    echo "Successfully deployed version: ${IMAGE_VERSION}"
+                '''
             }
         }
     }
