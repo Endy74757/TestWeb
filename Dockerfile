@@ -10,16 +10,27 @@ WORKDIR /usr/src/app
 # Docker won't re-run 'npm install' on subsequent builds, speeding things up.
 COPY package*.json ./
 
-ENV https_proxy=http://192.168.1.6:3128
-ENV http_proxy=http://192.168.1.6:3128
+# Use ARG for build-time proxy settings.
+# You can override these with --build-arg on the command line.
+ARG PROXY_URL=http://192.168.1.6:3128
+
+# Set environment variables for proxy for any tools that might need them during the build.
+ENV http_proxy=$PROXY_URL
+ENV https_proxy=$PROXY_URL
 
 # Install only production dependencies to keep the image lean.
-RUN npm config set proxy http://192.168.1.6:3128 && \
-    npm config set https-proxy http://192.168.1.6:3128 && \
-    npm install --production
+# We pass the proxy settings directly to the npm command for reliability.
+# We also clean the cache first to avoid potential corruption issues.
+RUN npm cache clean --force && \
+    npm install --production --proxy ${PROXY_URL} --https-proxy ${PROXY_URL}
 
 # Copy the rest of the application's source code into the container.
 COPY . .
+
+# Unset the proxy environment variables so they don't exist in the final image.
+# This is a good security practice.
+ENV http_proxy=""
+ENV https_proxy=""
 
 # Expose the port your application runs on. Adjust this if your app uses a different port.
 EXPOSE 8080
