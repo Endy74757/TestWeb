@@ -6,6 +6,11 @@ FROM node:18-alpine
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 
+# Update OS packages to get the latest security patches
+# and then clean up the apk cache to keep the image size down.
+RUN apk update && apk upgrade && \
+    rm -rf /var/cache/apk/*
+
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
@@ -18,12 +23,22 @@ COPY package*.json ./
 # This is cleaner than setting ENV variables for the whole image.
 RUN if [ -n "$HTTP_PROXY" ]; then npm config set proxy $HTTP_PROXY; fi && \
     if [ -n "$HTTPS_PROXY" ]; then npm config set https-proxy $HTTPS_PROXY; fi && \
-    npm install --production && \
+    npm install --production --verbose && \
     npm config delete proxy && \
     npm config delete https-proxy
 
 # Copy the rest of the application's source code into the container.
 COPY . .
+
+# --- Security Best Practice: Run as a non-root user ---
+# Create a dedicated user and group for the application
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Change the ownership of the application files to the new user
+RUN chown -R appuser:appgroup /usr/src/app
+
+# Switch to the non-root user
+USER appuser
 
 # Expose the port your application runs on. Adjust this if your app uses a different port.
 EXPOSE 8080
