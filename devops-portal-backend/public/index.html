@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Pipeline Trigger</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 500px; }
+        h1 { color: #333; }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: #555; }
+        input[type="text"] { width: calc(100% - 20px); padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #response-message { margin-top: 1.5rem; padding: 1rem; border-radius: 4px; display: none; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Trigger Jenkins Pipeline</h1>
+        <form id="pipeline-form">
+            <div class="form-group">
+                <label for="git-url">Git Repository URL</label>
+                <input type="text" id="git-url" name="gitUrl" placeholder="https://github.com/user/repo.git" required>
+            </div>
+            <button type="submit" id="submit-btn">Start Pipeline</button>
+        </form>
+        <div id="response-message"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('pipeline-form');
+        const gitUrlInput = document.getElementById('git-url');
+        const submitButton = document.getElementById('submit-btn');
+        const responseMessageDiv = document.getElementById('response-message');
+
+        // URL ของ Backend API ของคุณ
+        const apiUrl = 'http://localhost:3000/api/trigger-pipeline';
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // ป้องกันไม่ให้ฟอร์ม submit แบบปกติ (reload หน้า)
+
+            const gitUrl = gitUrlInput.value;
+
+            // Disable a button while processing
+            submitButton.disabled = true;
+            submitButton.textContent = 'Starting...';
+            responseMessageDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ gitUrl: gitUrl })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    displayMessage(result.message, 'success');
+                    form.reset(); // เคลียร์ฟอร์มเมื่อสำเร็จ
+                } else {
+                    displayMessage(result.message || 'An unknown error occurred.', 'error');
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                displayMessage('Could not connect to the backend server.', 'error');
+            } finally {
+                // Re-enable the button
+                submitButton.disabled = false;
+                submitButton.textContent = 'Start Pipeline';
+            }
+        });
+
+        function displayMessage(message, type) {
+            responseMessageDiv.textContent = message;
+            responseMessageDiv.className = type; // 'success' or 'error'
+            responseMessageDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

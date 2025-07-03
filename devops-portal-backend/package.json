@@ -1,0 +1,20 @@
+{
+  "name": "devops-portal-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "description": "Backend API to trigger Jenkins pipelines.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install-dependencies": "npm install express axios dotenv cors"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
