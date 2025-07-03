@@ -26,27 +26,28 @@ stage('Build and Push Docker Image') {
 stage('Deploy To Kubernetes') {
     // กำหนด Environment Variables สำหรับ Stage นี้โดยเฉพาะ
     // เพื่อให้ shell script (envsubst) สามารถมองเห็นค่าจาก Groovy ได้
-    environment {
-        IMAGE_NAME    = imageName
-        IMAGE_VERSION = imageVersion
-    }
     script {
-        // 1. ดึง Kubeconfig credential
         withKubeConfig(credentialsId: "kubeconfig") {
-            // 2. ดึง Docker Hub credential เพื่อให้ DOCKER_USER พร้อมใช้งาน
             withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                // ไม่จำเป็นต้องใช้ script {} เพราะมีแค่ sh step เดียว
-                sh '''
-                    echo =======Deploy To Kubernetes==========
-                    # ตัวแปรเหล่านี้ถูกส่งมาจาก environment block ด้านบน
-                    echo "Applying deployment for image ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
-
-                    # 3. envsubst จะแทนที่ตัวแปรในไฟล์ YAML ด้วยค่าจาก environment
-                    cat k8s/TestWebdeploy.yaml | envsubst | kubectl apply -f -
-                    kubectl apply -f k8s/TestWebSVC.yaml
-                    sleep 10
-                    echo "Successfully deployed version: ${IMAGE_VERSION}"
-                '''
+                
+                // สร้างค่าตัวแปรเองจาก Groovy และส่งเข้าด้วย withEnv
+                def dockerImage = "${DOCKER_USER}/${imageName}:${imageVersion}"
+                
+                withEnv([
+                    "DOCKER_USER=${DOCKER_USER}",
+                    "IMAGE_NAME=${imageName}",
+                    "IMAGE_VERSION=${imageVersion}"
+                ]) {
+                    sh '''
+                        echo =======Deploy To Kubernetes==========
+                        echo "Applying deployment for image ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
+                        
+                        # ใช้ envsubst แล้ว apply
+                        cat k8s/TestWebdeploy.yaml | envsubst | kubectl apply -f -
+                        kubectl apply -f k8s/TestWebSVC.yaml
+                        echo "Successfully deployed version: ${IMAGE_VERSION}"
+                    '''
+                }
             }
         }
     }
