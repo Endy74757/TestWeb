@@ -1,5 +1,5 @@
 // server.js
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -16,8 +16,19 @@ app.use(express.urlencoded({ extended: true })); // สำหรับ parse for
 // --- เพิ่มส่วนนี้ ---
 app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
 
-// ดึงค่าจาก environment variables
+// --- IMPROVEMENT: Validate required environment variables on startup ---
 const { JENKINS_URL, JENKINS_USER, JENKINS_TOKEN } = process.env;
+const requiredEnvVars = { JENKINS_URL, JENKINS_USER, JENKINS_TOKEN };
+
+for (const [key, value] of Object.entries(requiredEnvVars)) {
+    if (!value) {
+        console.error(`FATAL ERROR: Environment variable ${key} is not defined.`);
+        // Exit the process with a "fatal exception" code
+        process.exit(1);
+    }
+}
+// --- End of improvement ---
+
 const JENKINS_JOB_NAME = 'dynamic-git-pipeline'; // ชื่อ Job ที่สร้างใน Jenkins
 
 // สร้าง Authorization Header สำหรับ Jenkins API
