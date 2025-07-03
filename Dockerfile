@@ -12,11 +12,11 @@ COPY package*.json ./
 
 ENV https_proxy=http://192.168.1.6:3128
 ENV http_proxy=http://192.168.1.6:3128
-ARG HTTPS_PROXY=http://192.168.1.6:3128
-ARG HTTP_PROXY=http://192.168.1.6:3128
 
 # Install only production dependencies to keep the image lean.
-RUN npm install --production
+RUN npm config set proxy http://192.168.1.6:3128 && \
+    npm config set https-proxy http://192.168.1.6:3128 && \
+    npm install --production
 
 # Copy the rest of the application's source code into the container.
 COPY . .
