@@ -2,7 +2,7 @@
 // It contains the specific build, test, and deploy logic for this project.
 
 // Define local variables. The 'params' and 'BUILD_NUMBER' are inherited from the parent pipeline.
-def imageName = "${params.GIT_REPO_URL.split('/').last().split('\\.git').first()}"
+def imageName = "${params.GIT_REPO_URL.split('/').last().split('\\.git').first()}".toLowerCase()
 def imageVersion = "v1.0.${BUILD_NUMBER}"
 
 stage('Build and Push Docker Image') {

@@ -17,6 +17,16 @@
         #response-message { margin-top: 1.5rem; padding: 1rem; border-radius: 4px; display: none; }
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        #status-container { margin-top: 2rem; text-align: left; border: 1px solid #eee; padding: 1rem; border-radius: 4px; }
+        .status-badge { padding: 0.2em 0.6em; border-radius: 1em; font-size: 0.8em; font-weight: bold; color: white; text-transform: uppercase; }
+        .status-queued { background-color: #6c757d; }
+        .status-in_progress { background-color: #007bff; }
+        .status-success { background-color: #28a745; }
+        .status-failed, .status-aborted { background-color: #dc3545; }
+        #stage-list { list-style-type: none; padding: 0; margin-top: 1rem; }
+        #stage-list li { padding: 0.5rem; border-bottom: 1px solid #eee; display: flex; align-items: center; }
+        #stage-list li:last-child { border-bottom: none; }
+        .stage-icon { margin-right: 0.8rem; font-size: 1.2em; }
     </style>
 </head>
 <body>
@@ -30,6 +40,11 @@
             <button type="submit" id="submit-btn">Start Pipeline</button>
         </form>
         <div id="response-message"></div>
+            <div id="status-container" style="display: none;">
+                <h3>Pipeline Status</h3>
+                <div id="overall-status">Overall: <span class="status-badge"></span></div>
+                <ul id="stage-list"></ul>
+            </div>
     </div>
 
     <script>
@@ -37,19 +52,24 @@
         const gitUrlInput = document.getElementById('git-url');
         const submitButton = document.getElementById('submit-btn');
         const responseMessageDiv = document.getElementById('response-message');
+        const statusContainer = document.getElementById('status-container');
+        const overallStatusSpan = document.querySelector('#overall-status .status-badge');
+        const stageListUl = document.getElementById('stage-list');
+        let pollingInterval;
 
         // URL ของ Backend API ของคุณ
         const apiUrl = 'http://localhost:3000/api/trigger-pipeline';
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault(); // ป้องกันไม่ให้ฟอร์ม submit แบบปกติ (reload หน้า)
-
             const gitUrl = gitUrlInput.value;
-
+            
             // Disable a button while processing
             submitButton.disabled = true;
             submitButton.textContent = 'Starting...';
             responseMessageDiv.style.display = 'none';
+            statusContainer.style.display = 'none';
+            if (pollingInterval) clearInterval(pollingInterval);
 
             try {
                 const response = await fetch(apiUrl, {
@@ -62,22 +82,69 @@
 
                 const result = await response.json();
 
-                if (response.ok) {
+                if (response.ok && result.queueUrl) {
                     displayMessage(result.message, 'success');
-                    form.reset(); // เคลียร์ฟอร์มเมื่อสำเร็จ
+                    statusContainer.style.display = 'block';
+                    startPolling(result.queueUrl);
                 } else {
                     displayMessage(result.message || 'An unknown error occurred.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Start Pipeline';
                 }
 
             } catch (error) {
                 console.error('Fetch error:', error);
                 displayMessage('Could not connect to the backend server.', 'error');
-            } finally {
-                // Re-enable the button
                 submitButton.disabled = false;
                 submitButton.textContent = 'Start Pipeline';
             }
         });
+
+        function startPolling(queueUrl) {
+            pollingInterval = setInterval(async () => {
+                try {
+                    const statusApiUrl = `/api/build-status?queueUrl=${encodeURIComponent(queueUrl)}`;
+                    const response = await fetch(statusApiUrl);
+                    if (!response.ok) throw new Error('Failed to fetch status from backend.');
+                    
+                    const statusData = await response.json();
+                    updateStatusUI(statusData);
+
+                    // Stop polling if the build is finished
+                    if (statusData.status !== 'IN_PROGRESS' && statusData.status !== 'QUEUED') {
+                        clearInterval(pollingInterval);
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Start Pipeline';
+                        if (statusData.status === 'SUCCESS') form.reset();
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                    displayMessage('Error fetching pipeline status.', 'error');
+                    clearInterval(pollingInterval);
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Start Pipeline';
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+
+        function updateStatusUI(data) {
+            overallStatusSpan.textContent = data.status.replace('_', ' ');
+            overallStatusSpan.className = `status-badge status-${data.status.toLowerCase()}`;
+
+            stageListUl.innerHTML = ''; // Clear previous stages
+            if (data.stages && data.stages.length > 0) {
+                data.stages.forEach(stage => {
+                    const li = document.createElement('li');
+                    const icons = { SUCCESS: '✅', IN_PROGRESS: '⚙️', FAILED: '❌', ABORTED: '❌' };
+                    const icon = icons[stage.status] || '⏳';
+                    const duration = stage.duration > 0 ? `(${(stage.duration / 1000).toFixed(2)}s)` : '';
+                    li.innerHTML = `<span class="stage-icon">${icon}</span> ${stage.name} <span style="margin-left: auto; color: #666;">${duration}</span>`;
+                    stageListUl.appendChild(li);
+                });
+            } else if (data.status === 'QUEUED') {
+                stageListUl.innerHTML = '<li><span class="stage-icon">⏳</span> Waiting in queue...</li>';
+            }
+        }
 
         function displayMessage(message, type) {
             responseMessageDiv.textContent = message;

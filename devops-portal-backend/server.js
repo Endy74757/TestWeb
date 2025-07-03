@@ -60,12 +60,56 @@ app.post('/api/trigger-pipeline', async (req, res) => {
 
         // Jenkins API จะตอบกลับด้วย status 201 Created เมื่อรับคำสั่งสำเร็จ
         if (response.status === 201) {
-            console.log('Successfully triggered Jenkins job.');
-            res.status(200).json({ success: true, message: 'Pipeline triggered successfully! Check your Jenkins dashboard.' });
+            const queueUrl = response.headers.location;
+            console.log(`Successfully triggered Jenkins job. Queue URL: ${queueUrl}`);
+            res.status(200).json({ 
+                success: true, 
+                message: 'Pipeline triggered successfully! Fetching status...',
+                queueUrl: queueUrl // ส่ง URL สำหรับติดตามสถานะกลับไปให้ Frontend
+            });
         } else {
             throw new Error(`Jenkins responded with status: ${response.status}`);
         }
 
+    } catch (error) {
+        console.error('Error triggering Jenkins job:', error.response ? error.response.data : error.message);
+        res.status(500).json({ success: false, message: 'Failed to trigger Jenkins pipeline.', error: error.message });
+    }
+});
+
+// API ใหม่สำหรับดึงสถานะของ Build
+app.get('/api/build-status', async (req, res) => {
+    const { queueUrl } = req.query;
+    if (!queueUrl) return res.status(400).json({ error: 'queueUrl is required' });
+
+    try {
+        // 1. ตรวจสอบคิวเพื่อหา Build Number
+        const queueResponse = await axios.get(`${queueUrl}api/json`, {
+            headers: { 'Authorization': `Basic ${jenkinsAuth}` }
+        });
+
+        const queueItem = queueResponse.data;
+
+        if (queueItem.cancelled) return res.json({ status: 'CANCELLED', stages: [] });
+        if (!queueItem.executable) return res.json({ status: 'QUEUED', stages: [] });
+
+        const buildNumber = queueItem.executable.number;
+        const buildUrl = `${JENKINS_URL}/job/${JENKINS_JOB_NAME}/${buildNumber}`;
+
+        // 2. ดึงข้อมูลสถานะและ Stages จาก Workflow API
+        const wfApiResponse = await axios.get(`${buildUrl}/wfapi/describe`, {
+            headers: { 'Authorization': `Basic ${jenkinsAuth}` }
+        });
+
+        const buildData = wfApiResponse.data;
+
+        // ส่งข้อมูลที่สรุปแล้วกลับไปให้ Frontend
+        res.json({
+            status: buildData.status,
+            stages: buildData.stages.map(stage => ({
+                name: stage.name, status: stage.status, duration: stage.durationMillis
+            }))
+        });
     } catch (error) {
         console.error('Error triggering Jenkins job:', error.response ? error.response.data : error.message);
         res.status(500).json({ success: false, message: 'Failed to trigger Jenkins pipeline.', error: error.message });
