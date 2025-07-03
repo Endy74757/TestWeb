@@ -22,7 +22,7 @@ ENV https_proxy=$PROXY_URL
 # We pass the proxy settings directly to the npm command for reliability.
 # We also clean the cache first to avoid potential corruption issues.
 RUN npm cache clean --force && \
-    npm install --production --proxy ${PROXY_URL} --https-proxy ${PROXY_URL}
+    npm install --omit=dev --proxy ${PROXY_URL} --https-proxy ${PROXY_URL}
 
 # Copy the rest of the application's source code into the container.
 COPY . .
