@@ -7,18 +7,18 @@ stage('Build and Push Docker Image') {
 
             echo "Building Docker image: ${DOCKER_USER}/${imageName}:${imageVersion}"
             
-            sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+            sh "echo ${DOCKER_PASS} | sudo docker login -u ${DOCKER_USER} --password-stdin"
 
             sh """
-                docker build \
+                sudo docker build \
                     --build-arg http_proxy=http://192.168.1.6:3128 \
                     --build-arg https_proxy=http://192.168.1.6:3128 \
                     -t ${DOCKER_USER}/${imageName}:${imageVersion} \
                     -f Dockerfile .
             """
 
-            sh "docker push ${DOCKER_USER}/${imageName}:${imageVersion}"
-            sh "docker logout"
+            sh "sudo docker push ${DOCKER_USER}/${imageName}:${imageVersion}"
+            sh "sudo docker logout"
         }
     }
 }
