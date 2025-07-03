@@ -30,7 +30,7 @@ stage('Deploy To Kubernetes') {
         IMAGE_NAME    = imageName
         IMAGE_VERSION = imageVersion
     }
-    steps {
+    script {
         // 1. ดึง Kubeconfig credential
         withKubeConfig(credentialsId: "kubeconfig") {
             // 2. ดึง Docker Hub credential เพื่อให้ DOCKER_USER พร้อมใช้งาน
