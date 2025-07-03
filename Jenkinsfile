@@ -15,8 +15,14 @@ stage('Build and Push Docker Image') {
             // Login to Docker Hub
             sh "echo ${DOCKER_PASS} | sudo docker login -u ${DOCKER_USER} --password-stdin"
 
-            // Build the Docker image from the Dockerfile in this repository's root
-            sh "sudo docker build -t ${DOCKER_USER}/${imageName}:${imageVersion} ."
+            // Build the Docker image, passing proxy settings as build arguments.
+            // This allows the 'npm install' step inside the Dockerfile to use the proxy.
+            sh """
+                sudo docker build \\
+                  --build-arg HTTP_PROXY=${env.HTTP_PROXY} \\
+                  --build-arg HTTPS_PROXY=${env.HTTPS_PROXY} \\
+                  -t ${DOCKER_USER}/${imageName}:${imageVersion} .
+            """
 
             // Push the image to Docker Hub
             sh "sudo docker push ${DOCKER_USER}/${imageName}:${imageVersion}"

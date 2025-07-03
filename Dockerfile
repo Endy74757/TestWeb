@@ -1,6 +1,10 @@
 # Stage 1: Use an official Node.js runtime as a parent image
 # Using alpine version for a smaller image size, which is great for production.
-FROM node:20-alpine
+FROM node:18-alpine
+
+# Declare build-time arguments for proxy settings.
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
@@ -10,13 +14,13 @@ WORKDIR /usr/src/app
 # Docker won't re-run 'npm install' on subsequent builds, speeding things up.
 COPY package*.json ./
 
-ENV https_proxy=http://192.168.1.6:3128
-ENV http_proxy=http://192.168.1.6:3128
-ARG HTTPS_PROXY=http://192.168.1.6:3128
-ARG HTTP_PROXY=http://192.168.1.6:3128
-
-# Install only production dependencies to keep the image lean.
-RUN npm install --production
+# Install dependencies, using the proxy for this step only.
+# This is cleaner than setting ENV variables for the whole image.
+RUN if [ -n "$HTTP_PROXY" ]; then npm config set proxy $HTTP_PROXY; fi && \
+    if [ -n "$HTTPS_PROXY" ]; then npm config set https-proxy $HTTPS_PROXY; fi && \
+    npm install --production && \
+    npm config delete proxy && \
+    npm config delete https-proxy
 
 # Copy the rest of the application's source code into the container.
 COPY . .
