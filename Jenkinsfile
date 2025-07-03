@@ -42,8 +42,8 @@ stage('Deploy To Kubernetes') {
                     echo "Applying deployment for image ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
 
                     # 3. envsubst จะแทนที่ตัวแปรในไฟล์ YAML ด้วยค่าจาก environment
-                    cat k8s/testing-api-deploy.yaml | envsubst | kubectl apply -f -
-                    kubectl apply -f k8s/testing-api-svc.yaml
+                    cat k8s/TestWebdeploy.yaml | envsubst | kubectl apply -f -
+                    kubectl apply -f k8s/TestWebSVC.yaml
                     sleep 10
                     echo "Successfully deployed version: ${IMAGE_VERSION}"
                 '''
