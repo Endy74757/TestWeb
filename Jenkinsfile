@@ -13,16 +13,16 @@ stage('Build and Push Docker Image') {
             echo "Building Docker image: ${DOCKER_USER}/${imageName}:${imageVersion}"
             
             // Login to Docker Hub
-            sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+            sh "echo ${DOCKER_PASS} | sudo docker login -u ${DOCKER_USER} --password-stdin"
 
             // Build the Docker image from the Dockerfile in this repository's root
-            sh "docker build -t ${DOCKER_USER}/${imageName}:${imageVersion} ."
+            sh "sudo docker build -t ${DOCKER_USER}/${imageName}:${imageVersion} ."
 
             // Push the image to Docker Hub
-            sh "docker push ${DOCKER_USER}/${imageName}:${imageVersion}"
+            sh "sudo docker push ${DOCKER_USER}/${imageName}:${imageVersion}"
 
             // Logout for security
-            sh "docker logout"
+            sh "sudo docker logout"
         }
     }
 }
