@@ -10,6 +10,11 @@ WORKDIR /usr/src/app
 # Docker won't re-run 'npm install' on subsequent builds, speeding things up.
 COPY package*.json ./
 
+ENV https_proxy=http://192.168.1.6:3128
+ENV http_proxy=http://192.168.1.6:3128
+ARG HTTPS_PROXY=http://192.168.1.6:3128
+ARG HTTP_PROXY=http://192.168.1.6:3128
+
 # Install only production dependencies to keep the image lean.
 RUN npm install --production
 
