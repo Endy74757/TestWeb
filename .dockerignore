@@ -1,0 +1,18 @@
+# Ignore files related to version control
+.git
+.gitignore
+
+# Ignore local environment files. These should be passed in during runtime.
+.env
+
+# Ignore Node.js dependencies, as they will be installed inside the container
+node_modules
+
+# Ignore log files and npm debug logs
+logs
+*.log
+npm-debug.log*
+
+# Ignore OS-generated files
+.DS_Store
+Thumbs.db
