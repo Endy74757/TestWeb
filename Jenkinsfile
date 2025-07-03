@@ -1,72 +1,88 @@
-// c:\jenkins\jobs\dynamic-git-pipeline\config.xml (This is a conceptual path)
-// The actual content below goes into the "Pipeline script" box in the Jenkins UI.
+// Jenkinsfile for the 'dynamic-git-pipeline' job
 
 pipeline {
+    // กำหนดให้ Pipeline ทำงานบน Agent ใดก็ได้ที่มี Docker ติดตั้งอยู่
     agent any
 
-    // ดึงค่าพารามิเตอร์ที่ส่งเข้ามา
+    // กำหนดพารามิเตอร์ที่ Pipeline จะรับค่าเข้ามา
     parameters {
-        string(name: 'GIT_REPO_URL', defaultValue: '', description: 'Git repository URL provided by the API')
+        string(name: 'GIT_REPO_URL', defaultValue: '', description: 'Git repository URL to build')
+    }
+
+    // กำหนด Environment Variables ที่จะใช้ภายใน Pipeline
+    environment {
+        // ดึงชื่อ Repository จาก URL เพื่อใช้เป็นชื่อ Docker Image
+        // ตัวอย่าง: https://github.com/user/my-app.git -> my-app
+        IMAGE_NAME = "${params.GIT_REPO_URL.split('/').last().split('\\.git').first()}"
+        
+        // สร้าง Version ของ Image โดยใช้ Build Number เพื่อให้ไม่ซ้ำกัน
+        IMAGE_VERSION = "v1.0.${BUILD_NUMBER}"
     }
 
     stages {
         stage('1. Checkout Code') {
             steps {
                 script {
-                    // ตรวจสอบว่า GIT_REPO_URL มีค่าหรือไม่
+                    // ตรวจสอบว่าได้รับ Git URL มาหรือไม่
                     if (params.GIT_REPO_URL.trim().isEmpty()) {
                         error "Git repository URL was not provided."
                     }
                     echo "Cloning repository from: ${params.GIT_REPO_URL}"
-
-                    // ลบ workspace เก่า (ถ้ามี) เพื่อความสะอาด
+                    
+                    // ล้าง Workspace เก่าก่อนเริ่มงาน
                     cleanWs()
 
-                    // ทำการ Clone Git Repository โดยใช้ URL ที่ได้รับมา
+                    // Clone Git Repository จาก URL ที่ได้รับมา
                     git url: params.GIT_REPO_URL, branch: 'main' // หรือ 'master' ตาม repo ของคุณ
                 }
             }
         }
 
-        stage('2. Build') {
+        stage('2. Build and Push Docker Image') {
             steps {
-                echo "Building the project..."
-                // --- ตัวอย่างคำสั่ง Build ---
-                // คุณต้องปรับเปลี่ยนส่วนนี้ให้เข้ากับโปรเจกต์ของคุณ
-                // ตัวอย่างสำหรับ Node.js: sh 'npm install'
-                // ตัวอย่างสำหรับ Java (Maven): sh 'mvn clean install'
-                // ตัวอย่างสำหรับ .NET: sh 'dotnet build'
-                sh 'ls -la' // คำสั่งตัวอย่างเพื่อแสดงไฟล์ใน workspace
+                script {
+                    echo "Building Docker image: ${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                    
+                    // ใช้ Credentials ของ Docker Hub ที่เก็บไว้ใน Jenkins
+                    // **ตรวจสอบให้แน่ใจว่าคุณได้สร้าง Credential ประเภท 'Username with password'
+                    // และตั้ง ID เป็น 'dockerhub-credentials' ใน Jenkins แล้ว**
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        
+                        // ล็อกอินเข้า Docker Hub
+                        // หมายเหตุ: เราได้ลบ 'sudo' ออกไปแล้ว
+                        // ผู้ใช้ 'jenkins' บนเครื่อง Agent ควรจะอยู่ในกลุ่ม 'docker'
+                        // สามารถทำได้โดยรันคำสั่ง: sudo usermod -aG docker jenkins
+                        sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+
+                        // สร้าง Docker Image โดยอ้างอิงจาก Dockerfile ใน root ของ repo ที่ clone มา
+                        // Image จะถูกตั้งชื่อเป็น 'your-dockerhub-username/repo-name:version'
+                        sh "docker build -t ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} ."
+
+                        // Push Image ขึ้นไปยัง Docker Hub
+                        sh "docker push ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+
+                        // ล็อกเอาท์ออกจาก Docker Hub เพื่อความปลอดภัย
+                        sh "docker logout"
+                    }
+                }
             }
         }
 
-        stage('3. Test') {
-            steps {
-                echo "Running tests..."
-                // --- ตัวอย่างคำสั่ง Test ---
-                // ตัวอย่างสำหรับ Node.js: sh 'npm test'
-                // ตัวอย่างสำหรับ Java (Maven): sh 'mvn test'
-                // ตัวอย่างสำหรับ .NET: sh 'dotnet test'
-            }
-        }
-
-        // คุณสามารถเพิ่ม Stage อื่นๆ ได้ตามต้องการ เช่น Deploy
-        // stage('4. Deploy') {
+        // คุณสามารถเพิ่ม Stage สำหรับ Deploy ต่อได้ในอนาคต
+        // stage('3. Deploy to Kubernetes') {
         //     steps {
-        //         echo "Deploying to production..."
+        //         echo "Deploying image ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}..."
+        //         // ... ใส่คำสั่ง deploy ของคุณที่นี่ ...
         //     }
         // }
     }
 
+    // ส่วนที่จะทำงานเสมอ ไม่ว่า Pipeline จะสำเร็จหรือล้มเหลว
     post {
         always {
             echo 'Pipeline finished.'
-        }
-        success {
-            echo 'Pipeline executed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed!'
+            // ล้าง Workspace เพื่อไม่ให้เปลืองพื้นที่
+            cleanWs()
         }
     }
 }
