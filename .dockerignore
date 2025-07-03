@@ -2,8 +2,7 @@
 .git
 .gitignore
 
-# Ignore local environment files. These should be passed in during runtime.
-.env
+
 
 # Ignore Node.js dependencies, as they will be installed inside the container
 node_modules
