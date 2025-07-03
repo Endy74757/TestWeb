@@ -20,23 +20,27 @@ pipeline {
     }
 
     stages {
-        stage('1. Checkout Code') {
+        stage('1. Checkout Target Repository') {
             steps {
                 script {
-                    // ตรวจสอบว่าได้รับ Git URL มาหรือไม่
                     if (params.GIT_REPO_URL.trim().isEmpty()) {
                         error "Git repository URL was not provided."
                     }
-                    echo "Cloning repository from: ${params.GIT_REPO_URL}"
-                    
-                    // ล้าง Workspace เก่าก่อนเริ่มงาน
+                    echo "Checking out code from: ${params.GIT_REPO_URL}"
+
+                    // Clean workspace before checkout for a fresh start
                     cleanWs()
 
-                    // Clone Git Repository จาก URL ที่ได้รับมา
-                    git url: params.GIT_REPO_URL, branch: 'main' // หรือ 'master' ตาม repo ของคุณ
+                    // Checkout the repository that contains the actual build logic
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']], // Use '*/master' if that is your default branch
+                        userRemoteConfigs: [[url: params.GIT_REPO_URL]]
+                    ])
                 }
             }
         }
+
 
         stage('2. Build and Push Docker Image') {
             steps {
