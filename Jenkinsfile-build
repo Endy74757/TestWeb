@@ -38,7 +38,7 @@ pipeline {
                         // Build the image
                         // หมายเหตุ: หาก Jenkins agent ของคุณไม่ได้ตั้งค่า proxy ให้ลบ --build-arg สองบรรทัดนั้นออกได้
                         sh """
-                                docker build \\
+                                sudo docker build \\
                                     --build-arg http_proxy=http://192.168.1.6:3128 \\
                                     --build-arg https_proxy=http://192.168.1.6:3128 \\
                                     -t ${fullImageTag} \\
@@ -47,8 +47,8 @@ pipeline {
 
 
                         // Push the image
-                        sh "docker push ${fullImageTag}"
-                        sh "docker logout"
+                        sh "sudo docker push ${fullImageTag}"
+                        sh "sudo docker logout"
 
                         // **สำคัญ** สร้างไฟล์ artifact เพื่อให้ Deploy Job รู้ว่าต้องใช้ Image Tag ไหน
                         sh "echo ${fullImageTag} > image.txt"
