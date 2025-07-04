@@ -28,28 +28,31 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     
-                    def fullImageTag = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
-                    echo "Building Docker image: ${fullImageTag}"
-                    
-                    // Login to Docker Hub
-                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+                    script {
+                        def fullImageTag = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
+                        echo "Building Docker image: ${fullImageTag}"
+                        
+                        // Login to Docker Hub
+                        sh "echo ${DOCKER_PASS} | sudo docker login -u ${DOCKER_USER} --password-stdin"
 
-                    // Build the image
-                    // หมายเหตุ: หาก Jenkins agent ของคุณไม่ได้ตั้งค่า proxy ให้ลบ --build-arg สองบรรทัดนั้นออกได้
-                    sh """
-                        docker build \\
-                            --build-arg http_proxy=http://192.168.1.6:3128 \\
-                            --build-arg https_proxy=http://192.168.1.6:3128 \\
-                            -t ${fullImageTag} \\
-                            -f devops-portal-backend/Dockerfile .
-                    """
+                        // Build the image
+                        // หมายเหตุ: หาก Jenkins agent ของคุณไม่ได้ตั้งค่า proxy ให้ลบ --build-arg สองบรรทัดนั้นออกได้
+                        sh """
+                                docker build \\
+                                    --build-arg http_proxy=http://192.168.1.6:3128 \\
+                                    --build-arg https_proxy=http://192.168.1.6:3128 \\
+                                    -t ${fullImageTag} \\
+                                    -f devops-portal-backend/Dockerfile .
+                            """
 
-                    // Push the image
-                    sh "docker push ${fullImageTag}"
-                    sh "docker logout"
 
-                    // **สำคัญ** สร้างไฟล์ artifact เพื่อให้ Deploy Job รู้ว่าต้องใช้ Image Tag ไหน
-                    sh "echo ${fullImageTag} > image.txt"
+                        // Push the image
+                        sh "docker push ${fullImageTag}"
+                        sh "docker logout"
+
+                        // **สำคัญ** สร้างไฟล์ artifact เพื่อให้ Deploy Job รู้ว่าต้องใช้ Image Tag ไหน
+                        sh "echo ${fullImageTag} > image.txt"
+                    }
                 }
             }
         }
