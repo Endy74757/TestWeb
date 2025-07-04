@@ -17,8 +17,6 @@ spec:
       containers:
       - image: ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}
         name: testweb
-        ports:
-        - containerPort: 3000
         envFrom:
         - secretRef:
             name: jenkins-credentials
