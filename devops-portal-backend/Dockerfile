@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json first.
 # This leverages Docker's layer caching. If these files don't change,
 # Docker won't re-run 'npm install' on subsequent builds, speeding things up.
-COPY package*.json ./
+COPY devops-portal-backend/package*.json ./
 
 ARG http_proxy
 ARG https_proxy
