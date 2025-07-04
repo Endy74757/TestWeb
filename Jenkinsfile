@@ -41,7 +41,7 @@ pipeline {
                             --build-arg http_proxy=http://192.168.1.6:3128 \\
                             --build-arg https_proxy=http://192.168.1.6:3128 \\
                             -t ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION} \\
-                            -f Dockerfile devops-portal-backend/Dockerfile .
+                            -f devops-portal-backend/Dockerfile .
                     """
 
                     sh "sudo docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
