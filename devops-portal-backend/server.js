@@ -36,22 +36,26 @@ const jenkinsAuth = Buffer.from(`${JENKINS_USER}:${JENKINS_TOKEN}`).toString('ba
 
 // API Endpoint สำหรับรับ Git Repo URL และสั่ง Jenkins ทำงาน
 app.post('/api/trigger-pipeline', async (req, res) => {
-    const { gitUrl } = req.body;
+    const { gitUrl, branchName } = req.body;
 
     if (!gitUrl) {
         return res.status(400).json({ success: false, message: 'Git repository URL is required.' });
     }
 
+    // หากไม่ได้ระบุ branch มา จะใช้ 'main' เป็นค่าเริ่มต้น
+    const gitBranch = branchName || 'main';
+
     // URL สำหรับ trigger Jenkins job with parameters
     const triggerUrl = `${JENKINS_URL}/job/${JENKINS_JOB_NAME}/buildWithParameters`;
 
-    console.log(`Received request to trigger pipeline for: ${gitUrl}`);
+    console.log(`Received request to trigger pipeline for: ${gitUrl} on branch: ${gitBranch}`);
     console.log(`Sending request to Jenkins at: ${triggerUrl}`);
 
     try {
         const response = await axios.post(triggerUrl, null, {
             params: {
-                GIT_REPO_URL: gitUrl // ส่ง URL ไปเป็นพารามิเตอร์
+                GIT_REPO_URL: gitUrl, // ส่ง URL ไปเป็นพารามิเตอร์
+                GIT_BRANCH: gitBranch // ส่ง branch ไปเป็นพารามิเตอร์
             },
             headers: {
                 'Authorization': `Basic ${jenkinsAuth}`
@@ -106,13 +110,18 @@ app.get('/api/build-status', async (req, res) => {
         // ส่งข้อมูลที่สรุปแล้วกลับไปให้ Frontend
         res.json({
             status: buildData.status,
+            buildUrl: buildUrl, // URL ของ build นี้ใน Jenkins
+            logUrl: `${buildUrl}/console`, // URL สำหรับดู Console Log
             stages: buildData.stages.map(stage => ({
-                name: stage.name, status: stage.status, duration: stage.durationMillis
+                name: stage.name,
+                status: stage.status,
+                duration: stage.durationMillis,
+                error: stage.error // ส่งข้อมูล error กลับไป ถ้ามี
             }))
         });
     } catch (error) {
-        console.error('Error triggering Jenkins job:', error.response ? error.response.data : error.message);
-        res.status(500).json({ success: false, message: 'Failed to trigger Jenkins pipeline.', error: error.message });
+        console.error('Error fetching build status:', error.response ? error.response.data : error.message);
+        res.status(500).json({ success: false, message: 'Failed to fetch build status.', error: error.message });
     }
 });
 
