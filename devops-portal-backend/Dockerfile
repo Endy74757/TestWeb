@@ -25,7 +25,8 @@ RUN npm cache clean --force && \
     npm install --only=production --proxy=${http_proxy} --https-proxy=${https_proxy}
 
 # Copy the rest of the application's source code into the container.
-COPY . .
+# Change this line to copy only the contents of the backend directory.
+COPY devops-portal-backend/ .
 
 # Unset proxy environment variables so they don't leak into the final image.
 ENV http_proxy=""
