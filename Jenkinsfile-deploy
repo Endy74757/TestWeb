@@ -1,0 +1,71 @@
+// Jenkinsfile-deploy
+
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'SOURCE_BUILD_NUMBER', description: 'Build number from dynamic-git-pipeline to deploy.')
+        choice(name: 'TARGET_ENVIRONMENT', choices: ['uat', 'production'], description: 'The target environment to deploy to.')
+        string(name: 'BUILD_ID', defaultValue: '', description: 'Unique ID for tracking from the portal.')
+    }
+
+    environment {
+        // กำหนด Namespace ของ Kubernetes ตาม Environment ที่เลือก
+        K8S_NAMESPACE = "${params.TARGET_ENVIRONMENT}"
+    }
+
+    stages {
+        stage('Preparation: Get Image Tag') {
+            steps {
+                echo "Preparing to deploy build #${params.SOURCE_BUILD_NUMBER} to environment [${params.TARGET_ENVIRONMENT}]"
+                
+                // คัดลอก artifact 'image.txt' จาก Build Job ที่ระบุ
+                // **ต้องติดตั้ง Plugin "Copy Artifact" ใน Jenkins ก่อน**
+                copyArtifacts(
+                    projectName: 'dynamic-git-pipeline', // ชื่อของ Build Job
+                    selector: specific(params.SOURCE_BUILD_NUMBER)
+                )
+
+                script {
+                    // อ่านค่า Image Tag จากไฟล์ที่คัดลอกมา
+                    env.IMAGE_TAG = readFile('image.txt').trim()
+                    if (!env.IMAGE_TAG) {
+                        error "Could not read image tag from artifact."
+                    }
+                    echo "Image to be deployed: ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withKubeConfig(credentialsId: "kubeconfig") {
+                    echo "Deploying to namespace: ${env.K8S_NAMESPACE}"
+                    
+                    // ใช้ envsubst เพื่อแทนที่ตัวแปรในไฟล์ YAML template ด้วยค่าจาก environment
+                    // ทำให้เราใช้ไฟล์ YAML เดียวกันสำหรับทุก Environment ได้
+                    // คุณต้องมีไฟล์ k8s/TestWebdeploy.template.yaml ใน repo ของ deploy job นี้
+                    sh '''
+                        export IMAGE_TAG=${IMAGE_TAG}
+                        export K8S_NAMESPACE=${K8S_NAMESPACE}
+
+                        echo "Applying deployment for image ${IMAGE_TAG}"
+                        cat k8s/TestWebdeploy.template.yaml | envsubst | kubectl apply -n ${K8S_NAMESPACE} -f -
+                        
+                        echo "Applying service..."
+                        kubectl apply -n ${K8S_NAMESPACE} -f k8s/TestWebSVC.yaml
+
+                        echo "Successfully triggered deployment for version: ${IMAGE_TAG}"
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo "Deployment pipeline finished."
+            cleanWs()
+        }
+    }
+}

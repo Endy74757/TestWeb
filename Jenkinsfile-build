@@ -1,0 +1,66 @@
+// Jenkinsfile-build
+
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'GIT_REPO_URL', defaultValue: 'https://github.com/Endy74757/TestWeb.git', description: 'The Git repository URL to build.')
+        string(name: 'GIT_BRANCH', defaultValue: 'main', description: 'The Git branch to build.')
+        string(name: 'BUILD_ID', defaultValue: '', description: 'Unique ID for tracking from the portal.')
+    }
+
+    environment {
+        // สร้างชื่อ Image จากชื่อ Repository และสร้าง Version จาก Build Number ของ Jenkins
+        IMAGE_NAME    = "${params.GIT_REPO_URL.split('/').last().split('\\.git').first().toLowerCase()}"
+        IMAGE_VERSION = "v1.0.${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                echo "Cloning repository from: ${params.GIT_REPO_URL} on branch: ${params.GIT_BRANCH}"
+                cleanWs()
+                git url: params.GIT_REPO_URL, branch: params.GIT_BRANCH
+            }
+        }
+
+        stage('Build and Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    
+                    def fullImageTag = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
+                    echo "Building Docker image: ${fullImageTag}"
+                    
+                    // Login to Docker Hub
+                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+
+                    // Build the image
+                    // หมายเหตุ: หาก Jenkins agent ของคุณไม่ได้ตั้งค่า proxy ให้ลบ --build-arg สองบรรทัดนั้นออกได้
+                    sh """
+                        docker build \\
+                            --build-arg http_proxy=http://192.168.1.6:3128 \\
+                            --build-arg https_proxy=http://192.168.1.6:3128 \\
+                            -t ${fullImageTag} \\
+                            -f devops-portal-backend/Dockerfile .
+                    """
+
+                    // Push the image
+                    sh "docker push ${fullImageTag}"
+                    sh "docker logout"
+
+                    // **สำคัญ** สร้างไฟล์ artifact เพื่อให้ Deploy Job รู้ว่าต้องใช้ Image Tag ไหน
+                    sh "echo ${fullImageTag} > image.txt"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Build pipeline finished.'
+            // เก็บไฟล์ image.txt ไว้เป็น Artifact ของ Build นี้
+            archiveArtifacts artifacts: 'image.txt', fingerprint: true
+            cleanWs()
+        }
+    }
+}
