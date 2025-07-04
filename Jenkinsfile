@@ -4,7 +4,7 @@ pipeline {
 
     // Define parameters for the pipeline for reusability.
     parameters {
-        string(name: 'GIT_REPO_URL', defaultValue: 'https://github.com/your-user/your-repo.git', description: 'The Git repository URL to build.')
+        string(name: 'GIT_REPO_URL', defaultValue: 'https://github.com/Endy74757/TestWeb.git', description: 'The Git repository URL to build.')
     }
 
     // Define environment variables globally for the entire pipeline.
