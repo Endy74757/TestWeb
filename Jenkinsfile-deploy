@@ -49,6 +49,9 @@ pipeline {
                         export IMAGE_TAG=${IMAGE_TAG}
                         export K8S_NAMESPACE=${K8S_NAMESPACE}
 
+                        echo "Ensuring namespace '${K8S_NAMESPACE}' exists..."
+                        kubectl create namespace ${K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+
                         echo "Applying deployment for image ${IMAGE_TAG}"
                         cat k8s/TestWebdeploy.yaml | envsubst | kubectl apply -n ${K8S_NAMESPACE} -f -
                         
