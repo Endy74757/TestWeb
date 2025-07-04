@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f7f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+h1, h2 {
+    color: #2c3e50;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+/* Status Section */
+#status-message {
+    font-size: 1.2em;
+    font-weight: 500;
+    margin-bottom: 15px;
+}
+
+.stage {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.stage-status {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.stage-name {
+    flex-grow: 1;
+}
+
+/* History Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #ecf0f1;
+}
+
+.status-SUCCESS, .status-STABLE { color: #2ecc71; font-weight: bold; }
+.status-FAILURE, .status-FAILED { color: #e74c3c; font-weight: bold; }
+.status-ABORTED { color: #95a5a6; font-weight: bold; }
+.status-IN_PROGRESS { color: #3498db; font-weight: bold; }
+.status-QUEUED { color: #f39c12; font-weight: bold; }
+
+.stage-SUCCESS .stage-status { background-color: #2ecc71; }
+.stage-FAILED .stage-status, .stage-ABORTED .stage-status { background-color: #e74c3c; }
+.stage-IN_PROGRESS .stage-status { background-color: #3498db; }
+.stage-PAUSED_PENDING_INPUT .stage-status { background-color: #f39c12; }
+
+.deploy-btn {
+    background-color: #27ae60;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+.deploy-btn:hover {
+    background-color: #229954;
+}
+
+#status-links a {
+    margin-right: 15px;
+    color: #3498db;
+    text-decoration: none;
+}
+#status-links a:hover {
+    text-decoration: underline;
+}

@@ -50,7 +50,7 @@ pipeline {
                         export K8S_NAMESPACE=${K8S_NAMESPACE}
 
                         echo "Applying deployment for image ${IMAGE_TAG}"
-                        cat k8s/TestWebdeploy.template.yaml | envsubst | kubectl apply -n ${K8S_NAMESPACE} -f -
+                        cat k8s/TestWebdeploy.yaml | envsubst | kubectl apply -n ${K8S_NAMESPACE} -f -
                         
                         echo "Applying service..."
                         kubectl apply -n ${K8S_NAMESPACE} -f k8s/TestWebSVC.yaml
