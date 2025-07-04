@@ -29,7 +29,8 @@ for (const [key, value] of Object.entries(requiredEnvVars)) {
 }
 // --- End of improvement ---
 
-const JENKINS_JOB_NAME = 'dynamic-git-pipeline'; // ชื่อ Job ที่สร้างใน Jenkins
+const 
+ = 'dynamic-git-pipeline'; // ชื่อ Job ที่สร้างใน Jenkins
 
 // สร้าง Authorization Header สำหรับ Jenkins API
 const jenkinsAuth = Buffer.from(`${JENKINS_USER}:${JENKINS_TOKEN}`).toString('base64');

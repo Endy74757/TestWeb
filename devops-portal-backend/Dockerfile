@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json first.
 # This leverages Docker's layer caching. If these files don't change,
 # Docker won't re-run 'npm install' on subsequent builds, speeding things up.
-COPY devops-portal-backend/package*.json ./
+COPY package*.json ./
 
 ARG http_proxy
 ARG https_proxy
@@ -22,17 +22,17 @@ ENV https_proxy=${https_proxy}
 # We pass the proxy directly to the npm command for maximum reliability
 # and clean the cache to prevent issues from previous failed attempts.
 RUN npm cache clean --force && \
-    npm install --omit=dev --proxy=${http_proxy} --https-proxy=${https_proxy}
+    npm install --only=production --proxy=${http_proxy} --https-proxy=${https_proxy}
 
 # Copy the rest of the application's source code into the container.
-COPY devops-portal-backend/ .
+COPY . .
 
 # Unset proxy environment variables so they don't leak into the final image.
 ENV http_proxy=""
 ENV https_proxy=""
 
 # Expose the port your application runs on. Adjust this if your app uses a different port.
-EXPOSE 8080
+EXPOSE 3000
 
 # Define the command to run your application. Change 'server.js' to your app's entry point.
 CMD [ "node", "server.js" ]

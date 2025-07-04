@@ -17,7 +17,8 @@ spec:
       containers:
       - image: ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}
         name: testweb
-      tolerations:
-      - key: "node-role.kubernetes.io/control-plane"
-        operator: "Exists"
-        effect: "NoSchedule"
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: jenkins-credentials
