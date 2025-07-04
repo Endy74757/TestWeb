@@ -30,7 +30,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
 
                     // Use env.VAR_NAME to access environment variables in Groovy strings.
-                    echo "Building Docker image: ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                    echo "Building Docker image: ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
                     
                     // SECURITY: Removed 'sudo'. The 'jenkins' user on the agent should be in the 'docker' group.
                     // Run this on the agent once: sudo usermod -aG docker jenkins
@@ -40,11 +40,11 @@ pipeline {
                         sudo docker build \\
                             --build-arg http_proxy=http://192.168.1.6:3128 \\
                             --build-arg https_proxy=http://192.168.1.6:3128 \\
-                            -t ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} \\
+                            -t ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION} \\
                             -f Dockerfile devops-portal-backend/.
                     """
 
-                    sh "sudo docker push ${DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                    sh "sudo docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_VERSION}"
                     sh "sudo docker logout"
                 }
             }
