@@ -11,7 +11,7 @@ spec:
   - port: 80
     protocol: TCP
     targetPort: 80
-    nodePort: 3000
+    nodePort: 30803
   selector:
     app: testweb
 status:
